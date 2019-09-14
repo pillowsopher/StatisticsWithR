@@ -1,0 +1,210 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+#### Part 1: About the Data
+The Behavioral Risk Factor Surveillance System (BRFSS) is an annual telephone survey in the United States.BRFSS is an ongoing surveillance system designed to measure behavioral risk factors for the non-institutionalized adult population (18 years of age and older) residing in the US. The objective of BRFSS is to find homogeneous, state specific data residing in the US on preventive health practices and risk behaviors that are related to chronic diseases.
+
+**Data Collection:**
+
+Data has been collected randomly has been shown in the [BRFSS Codebook](https://d3c33hcgiwev3.cloudfront.net/_e34476fda339107329fc316d1f98e042_brfss_codebook.html?Expires=1561852800&Signature=K0ZiSxyXKqSMXWpW2Xcgj9UYunE61SKiUD-uHCCie5f1noVU0KVCFcwj8z7N-OE2UtrG1404IGVeuPIzKA5s2MRLmOh17Y4Y1~FX~X9ieKURP9vqhtDwKcEof~cP4LssIZZ5-OlQd41rNg~L39n1XnrrUf4YP8CQuRzOpkszGME_&Key-Pair-Id=APKAJLTNE6QMUY6HBC5A) via land line telephone- and cellular telephone-based survey.
+
+**Possible Biases:**
+
+The data has been collected from the people who were randomly selected and were accessible to attend the phone calls hence, there is a chance that there is a convenience bias in the sample.
+
+**Causation:**
+
+The sample given is an observational sample and thus there is no causation, only correlation or association can be drawn.
+
+**Generalizability:**
+
+The sample is drawn using random sampling, hence we can say that the given sample is generalizable to the population, or the sample is a representative sample.
+
+
+
+* * *
+
+#### Part 2: Research questions
+
+**Research question 1:**
+Is there any association between employment status and not being able to see doctor because of the cost?
+
+
+**Research question 2:**
+Is there any association between having told that they have Arthritis, Ever being told you had a depressive disorder to being a veteran?
+
+
+**Research question 3:**
+Is there any association with chronic health conditions like being diagnosed with heart attack, being diagnosed with Angina or Coronary Heart disease or being diagnosed with a stroke with Average Alcoholic drinks had per day in past 30 days?
+
+* * *
+
+#### Part 3: Exploratory data analysis
+
+**Research question 1:**
+Is there any association between employment status and not being able to see doctor because of the cost?
+
+Variables used for this question:
+employ1 - Employment Status
+medcost - Could not see doctor because of cost
+
+
+```{r}
+employ_med <- brfss2013 %>%
+  filter(!is.na(employ1),!is.na(medcost))%>%
+  select(employ1 , medcost)
+```
+
+
+We can visualize our given data over here:
+
+```{r}
+ggplot(employ_med,aes(x= employ1, fill=medcost))+geom_bar()+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r}
+by(employ_med$medcost, employ_med$employ1, summary)
+```
+
+In general, we can see that the people who are unemployed for a year or more and the people who are unemployed for less than a year and the people who are unable to work are more likely that they could not visit the doctor because of the cost.
+
+
+**Research question 2:**
+
+We need to find if there is any association between having arthritis or depressive disorder and being a veteran.
+
+The variables we will use are: 
+addepev2 - Ever Told You Had A Depressive Disorder,
+havarth3: Told Have Arthritis,
+veteran3: Are You A Veteran
+
+```{r}
+veteran <- brfss2013 %>% 
+        # omitting NAs
+        filter(!is.na(havarth3), !is.na(addepev2), !is.na(veteran3) )%>%
+        select(havarth3, addepev2, veteran3)
+```
+Since, the values for havarth3 and addepev2 are categorical and have yes or no values we will convert the values in true or false.
+
+```{r}
+veteran<- veteran %>%
+  mutate(havarth3 = ifelse(veteran$havarth3 =="Yes",TRUE,FALSE))
+veteran<- veteran %>%
+  mutate(addepev2 = ifelse(veteran$addepev2 == "Yes",TRUE,FALSE))
+veteran<- veteran %>%
+  mutate(veteran3 = ifelse(veteran$veteran3 == "Yes",TRUE,FALSE))
+```
+
+We need to only check for data when person being veteran
+```{r}
+veteran<- veteran %>%
+  filter(veteran3=="TRUE")
+
+```
+
+Now we can visualize our data for having Arthritis and being a veteran.
+```{r}
+ggplot(veteran, aes(x = havarth3, fill = veteran3))+geom_bar()
+```
+```{r}
+by(veteran$havarth3, veteran$veteran3, summary)
+```
+```{r}
+ggplot(veteran, aes(x = addepev2, fill = veteran3))+geom_bar()
+```
+```{r}
+by(veteran$addepev2, veteran$veteran3, summary)
+```
+
+
+We can see that there is no association with a person being veteran and having arthritis, but, we can see that veterans are less likely to have depressive disorders.
+
+
+**Research question 3:**
+
+Is there any association with chronic health conditions like being diagnosed with heart attack, being diagnosed with Angina or Coronary Heart disease or being diagnosed with a stroke with Average Alcoholic drinks had per day in past 30 days?
+
+The variables we will use are:
+cvdinfr4: Ever Diagnosed With Heart Attack,
+cvdcrhd4: Ever Diagnosed With Angina Or Coronary Heart Disease,
+cvdstrk3: Ever Diagnosed With A Stroke,
+avedrnk2: Average Alcoholic Drinks per day in past 30 days
+
+First, we will remove all the N/A values from out results
+```{r}
+alcohol <- brfss2013 %>% 
+        # omitting NAs
+        filter(!is.na(cvdinfr4), !is.na(cvdcrhd4), !is.na(cvdstrk3), !is.na(avedrnk2))%>%
+        select(cvdinfr4, cvdcrhd4, cvdstrk3,avedrnk2 )
+```
+
+Our given data is in categorical form, we need to convert our given data in TRUE or FALSE
+
+```{r}
+alcohol<- alcohol %>%
+  mutate(cvdinfr4 = ifelse(alcohol$cvdinfr4 =="Yes",TRUE,FALSE))
+alcohol<- alcohol %>%
+  mutate(cvdcrhd4 = ifelse(alcohol$cvdcrhd4 == "Yes",TRUE,FALSE))
+alcohol<- alcohol %>%
+  mutate(cvdstrk3 = ifelse(alcohol$cvdstrk3 == "Yes",TRUE,FALSE))
+
+```
+
+We can now visualize our data of being diagonosed with heart attack and max drinks in past 30 days
+
+```{r}
+ggplot(alcohol, aes(x =avedrnk2, fill =cvdinfr4))+geom_histogram(bins=30)
+```
+
+```{r}
+by(alcohol$cvdinfr4,alcohol$avedrnk2,summary)
+```
+
+Now, we can now visualize our data of being diagonosed with Angina or Coronary Heart Disease with max drinks in past 30 days
+
+```{r}
+ggplot(alcohol, aes(x =avedrnk2, fill =cvdcrhd4))+geom_histogram(bins=30)
+
+```
+
+```{r}
+by(alcohol$cvdcrhd4,alcohol$avedrnk2,summary)
+```
+
+Now, we can now visualize our data of being diagonosed with Stroke with max drinks in past 30 days
+
+```{r}
+ggplot(alcohol, aes(x =avedrnk2, fill =cvdstrk3))+geom_histogram(bins=30)
+```
+
+```{r}
+by(alcohol$cvdstrk3,alcohol$avedrnk2,summary)
+```
+
+The above figures show that there is no significant effect of number of drinks taken in past month on being diagnosed with Heart Attack, Angina or Coronary Heart Disease, or having a stroke. 
